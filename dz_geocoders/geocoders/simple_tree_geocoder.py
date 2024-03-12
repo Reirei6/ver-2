@@ -1,8 +1,7 @@
-from hh_geocoding_template.api import API, TreeNode
+from api import API, TreeNode
 from geocoders.geocoder import Geocoder
 
 
-# Перебор дерева
 class SimpleTreeGeocoder(Geocoder):
     def __init__(self, samples: int | None = None, data: list[TreeNode] | None = None):
         super().__init__(samples=samples)
@@ -12,23 +11,22 @@ class SimpleTreeGeocoder(Geocoder):
             self.__data = data
 
     def _apply_geocoding(self, area_id: str) -> str:
-            target_node = None
-            for node in self.__data:
-                if node.id == area_id:
-                    target_node = node
-                    break
+        result = self.bfs(self.__data, str(area_id))
+        return ", ".join([node.name for node in result][::-1])
 
-            if target_node is None:
-                return "("
+    def bfs(self, root_children, area_id: str) -> list[TreeNode] | None:
+        result = []
 
-            address_parts = [target_node.name]
-            current_node = target_node
-            while current_node.id is not None:
-                parent_node = None
-                for node in self.__data:
-                    if node.id == current_node.parent_id:
-                        parent_node = node
-                        break
+        for node in root_children:
+            if node.id == area_id:
+                result.append(node)
+                return result
+            if len(node.areas) != 0:
+                res_return = self.bfs(node.areas, area_id)
+                if res_return:
+                    result.extend(res_return)
+                    result.append(node)
+                    return result
                 if parent_node is None:
                     break
                 address_parts.insert(0, parent_node.name)
